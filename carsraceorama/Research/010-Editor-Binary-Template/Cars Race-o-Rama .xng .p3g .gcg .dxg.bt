@@ -1,0 +1,497 @@
+//------------------------------------------------
+//--- 010 Editor v10.0.2 Binary Template
+//
+//      File: Cars Race-O-Rama PS3 P3G, XBOX360 XNG, WII GCG, PC DXG
+//   Authors: Allen
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+
+#define MAX_BONES 29 
+
+#define GX_NOP                   0x00
+#define GX_DRAW_TRIANGLE_STRIP   0x98
+
+#define GCG_HAS_NORMAL           0x01
+#define GCG_HAS_UV1              0x02
+#define GCG_HAS_UV2              0x04
+#define GCG_HAS_SKIN             0x08
+#define GCG_HAS_UNK              0x40
+#define GCG_STREAMED             0x80
+
+#define HAS_XYZ            0x01
+#define HAS_NORMAL         0x02
+#define HAS_UV1            0x04
+#define HAS_RGBA           0x08
+#define HAS_UV2            0x10
+#define HAS_TANGENT        0x20
+#define HAS_BONE_INDEX     0x40
+#define HAS_TEXTURE_BASIS  0x80
+#define HAS_DELTA_CPU      0x100
+#define HAS_COMPRESSION    0x200
+#define HAS_DELTA_SHADER   0x400
+#define HAS_DELTA_NORMALS  0x800
+#define HAS_WEIGHTS        0x1000
+#define HAS_GEOMETRY_COMPRESSION 0x2000
+#define HAS_UV3            0x4000
+#define HAS_UV4            0x8000
+
+typedef enum _GXCompType
+{
+    GX_U8      = 0,
+    GX_S8      = 1,
+    GX_U16     = 2,
+    GX_S16     = 3,
+    GX_F32     = 4,
+
+    GX_RGB565  = 0,
+    GX_RGB8    = 1,
+    GX_RGBX8   = 2,
+    GX_RGBA4   = 3,
+    GX_RGBA6   = 4,
+    GX_RGBA8   = 5
+}
+GXCompType;
+
+typedef enum _GXAttrType
+{
+    GX_NONE    = 0,
+    GX_DIRECT  = 1,
+    GX_INDEX8  = 2,
+    GX_INDEX16 = 3
+}
+GXAttrType;
+
+typedef struct{
+    short   id1;
+    short   id2;
+    short   id3;
+    ubyte   matrixType;//4 = Matrix3x3 0 =Matrix3x4
+    ubyte   matrixDataIDOffset;//9 floats = Matrix3x3 9*float(4bytes) = 36 bytes per data .,12 floats =Matrix3x4 12*float(4bytes) = 48 bytes per data .
+    if (matrixType == 4)
+    {
+        struct{
+            float   row1[3];
+            float   row2[3];
+            float   row3[3];
+        }RotationMatrix3x3;
+    }
+    else if (matrixType == 0) {
+        struct{
+            float   row1[4];
+            float   row2[4];
+            float   row3[4];
+        }RotationMatrix3x4;
+    }
+    local int endOfs = FTell();
+}GcgSkinBoneInfo;
+
+
+local int Animates = FALSE;
+local int ComplexMatrixPalettes = FALSE;
+
+char    magic[4];//xng or p3g or gcg or dxg
+int     version;
+if(version == 0x5000000) BigEndian();
+
+int     numBones;//NumberOfObjects
+struct{
+    char    boneName[128];
+    float   matrix44[16];
+    float   boundingBoxCenter[3];
+    float   boundingBoxHalf[3];
+    float   boundingBoxRadius;
+    int     parentID;
+    //Printf("%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",boneName,matrix44[0],matrix44[1],matrix44[2],matrix44[4],matrix44[6],matrix44[6],matrix44[8],matrix44[9],matrix44[10],matrix44[12],matrix44[13],matrix44[14]);
+    //Printf("%s\n",boneName);
+}bones[numBones];// <optimize=false>;
+
+
+
+
+if (numBones >= MAX_BONES) ComplexMatrixPalettes = TRUE;
+
+if (numBones > 1) Animates = TRUE;
+
+
+int     numNames;
+struct{
+    char    materialName[64];
+}materialNames[numNames];
+
+BYTE    NumberOfLOD;
+BYTE    skinedModelFlag;//0,1,3
+//1=single bone, parent bone index for static mesh; 3 = single + 4 bones for skin mesh
+
+//((((BOOL)HasWeights || (BOOL)gGenerateSkinning) ? 1 : 0) << 1) | Animates;
+//   if (pParams->Flags.GenerateSkinning){gGenerateSkinning = TRUE;}
+//if (NumberOfObjects > 1) Animates = TRUE;
+//if (NumberOfWeights > 0){HasWeights = TRUE;}
+
+
+BYTE    hasWeightFlag;//for wii / gamecube version
+BYTE    flag4;
+if (magic=="gcg")
+{
+    if (hasWeightFlag) {
+        short   numWeights;
+        struct{
+            short   boneID;
+            float   weight;
+        }weights[numWeights];        
+    }
+}
+
+
+local int numSurface = 0;
+
+struct{
+if ((magic=="xng") | (magic=="p3g") | (magic=="dxg"))
+{
+    float   AutoLODValue;
+    int     numMeshes;
+    numSurface += numMeshes;
+
+    struct{
+        int     materialID;
+        uint    vertFormat;
+        ubyte   numTextureCoordinateSets;
+        ubyte   compressed;
+        ubyte   streaming;
+        byte    unused[3];
+        float   currentUVSize[numTextureCoordinateSets];    
+        WORD    numVerts;
+        WORD    numFaceIndex;
+        local int hasPos = (vertFormat & 1) == 1;
+        local int hasNormal = (vertFormat & 2) == 2;
+        local int hasUV1 = (vertFormat & 4) == 4;//hasUV1
+        local int hasColor = (vertFormat & 8) == 8;//HAS_RGBA
+        local int hasUV2 = (vertFormat & 0x10) == 0x10; //HAS_UV2 
+        local int has_TANGENT = (vertFormat & 0x20) == 0x20;      
+        local int has_DELTA_CPU = (vertFormat & 0x100) == 0x100;     
+        local int hasUV3 = (vertFormat & 0x4000) == 0x4000;   
+        local int hasUV4 = (vertFormat & 0x8000) == 0x8000;    
+        local int hasSingleBone = (vertFormat & 0x40) == 0x40;//HAS_BONE_INDEX
+        local int hasSkin = (vertFormat & 0x1000) == 0x1000;//HAS_WEIGHTS   
+        local int numBoneIDs = 4;   
+        local int numWeights = 4;
+
+
+        short   faceIndex[numFaceIndex];
+        if((magic=="xng") | (magic=="p3g"))
+        if ( numFaceIndex %2 == 1 )   short   unused;// -1
+
+        if (hasPos == 1)    float   vertices[numVerts*3];
+        if (hasNormal == 1) float   normals[numVerts*3];
+        if (hasColor == 1)  int     ARGB32[numVerts];//BYTE[4] Color
+        if (hasUV1 == 1)    float   UV1[numVerts*2];
+        if (hasSingleBone)  float   singleBoneIDs[numVerts];//single bone id
+        if (hasSkin == 1)
+        {
+            float   boneIDs[numVerts*numBoneIDs];
+            float   weights[numVerts*numWeights];        
+        }
+        if (hasUV2 == 1) float   UV2[numVerts*2];
+        if (hasUV3 == 1) float   UV3[numVerts*2];
+        if (hasUV4 == 1) float   UV4[numVerts*2];
+        if (has_TANGENT == 1)    float   tangents[numVerts*3];
+    }mesh[numMeshes]<optimize=false>;
+
+
+}//end xng p3g
+
+if (magic=="gcg") 
+{
+    float   AutoLODValue;
+    int     numMesh;
+    struct{
+        int     materialID;
+        byte    vertexType;
+
+        local int HasNormal = vertexType & GCG_HAS_NORMAL;
+        local int HasColor = (vertexType & GCG_HAS_NORMAL) ? 0 : 1;
+        local int HasUV1 = (vertexType & GCG_HAS_UV1) ? 1 : 0;
+        local int HasUV2 = (vertexType & GCG_HAS_UV2) ? 1 : 0;
+        local int HasSkin = (vertexType & GCG_HAS_SKIN) ? 1 : 0;
+        local int HasUnk =  (vertexType & GCG_HAS_UNK) ? 1 : 0;
+        byte    vertAttrType;//1 = GX_DIRECT, 2 = GX_INDEX8, 3 = GX_INDEX16
+        byte    vertDataType;//0 = GX_U8, 1 = GX_S8, 2 = GX_U16, 3 = GX_S16, 4 = GX_F32, 5 =  GX_U32
+        byte    XYZFracBits;//XYZQuantizationScale
+        
+        if (HasNormal && HasSkin)
+        {
+
+            byte    normalAttrType;
+            byte    normalDataType;
+            
+        }
+        if(HasColor)
+        {
+            byte    colorAttrType;
+            byte    colorDataType;//0 = GX_U8, 1 = GX_S8, 2 = GX_U16, 3 = GX_S16, 4 = GX_F32, 5 =  GX_U32
+        }
+        byte    uvAttrType;//1 = GX_DIRECT, 2 = GX_INDEX8, 3 = GX_INDEX16
+        byte    uvDataType;//0 = GX_U8, 1 = GX_S8, 2 = GX_U16, 3 = GX_S16, 4 = GX_F32, 5 =  GX_U32
+        byte    TexFracBits;//TextureQuantizationScale
+/*
+   XYZQuantizationScale       = (float) ( 1 << XYZFracBits ); // vertex position 
+   TextureQuantizationScale   = (float) ( 1 << TexFracBits );
+*/
+        
+        ushort   numVert;
+        byte    vertStride;
+        
+        if (HasNormal && HasSkin)
+        {
+            ushort   numNormal;
+            byte    normalStride;        
+        }
+        if (HasColor)
+        {
+            ushort   numVColor;
+            byte    colorStride;
+        }
+        ushort   numUV;
+        byte    uvStride;
+        int     faceChunkSize;//32 bytes Align
+        
+
+        
+        
+        switch(vertDataType)
+        {
+            case 0x0:ubyte      vertexXYZ[numVert*3];break;
+            case 0x1:byte       vertexXYZ[numVert*3];break;
+            case 0x2:WORD       vertexXYZ[numVert*3];break;
+            case 0x3:short      vertexXYZ[numVert*3];break;
+            case 0x4:float      vertexXYZ[numVert*3];break;
+        }
+
+        if (HasNormal && HasSkin)
+        switch(normalDataType)
+        {
+            case 0x0:ubyte      normalXYZ[numNormal*3];break;
+            case 0x1:byte       normalXYZ[numNormal*3];break;// need / 64.0f
+            case 0x2:WORD       normalXYZ[numNormal*3];break;
+            case 0x3:short      normalXYZ[numNormal*3];break;
+            case 0x4:float      normalXYZ[numNormal*3];break;
+        }
+        
+        if (HasColor)
+        DWORD   VertexColorBGRA[numVColor];
+        
+        if (HasUV1)
+        switch(uvDataType)
+        {
+            case 0x0:ubyte      uv[numUV*2];break;
+            case 0x1:byte       uv[numUV*2];break;
+            case 0x2:WORD       uv[numUV*2];break;
+            case 0x3:short      uv[numUV*2];break;
+            case 0x4:float      uv[numUV*2];break;
+        }
+        
+
+        if(HasSkin)
+        {
+            
+            ushort   numSkinData;
+
+            local int faceBaseOffset1 = FTell() + numSkinData * 12 ;
+            
+            struct{
+                DWORD   matrixOffset;
+                short   weightID1;//for weights table id
+                short   weightID2;
+                short   weightID3;
+                short   weightID4;
+            }SkinList[numSkinData];
+        }
+        local int nextOfs = FTell() + faceChunkSize;
+        local int faceBaseOffset = FTell();
+        local int i ;
+        if (HasSkin)
+        {
+            local int offsetList[numSkinData];
+            for ( i = 0; i < numSkinData; i++)
+            {
+                FSeek(faceBaseOffset + SkinList[i].matrixOffset - 8 );
+                GcgSkinBoneInfo boneInfo;
+                offsetList[i] = FTell();
+            }
+
+            local int hasFace = 0;
+            local int maxIndex = numSkinData - 1;
+            for ( i = 0; i < numSkinData; i++)
+            {
+
+            if (i > 0) hasFace = (( boneInfo[i].matrixDataIDOffset < boneInfo[i-1].matrixDataIDOffset));
+            if ( hasFace || (i == maxIndex) )
+            {
+
+                if (i != maxIndex)
+                    FSeek(offsetList[i-1] );
+                else FSeek(offsetList[i]);
+                UBYTE check<hidden=true>;
+                if (check!=0x9f)
+                {
+                    FSeek(FTell()+43);
+                }
+                else{
+                    FSeek(FTell()-1);
+                };
+                
+                struct{
+                    ubyte   DrawType;//0x9F tri-strip
+                    WORD    numFaceIndex;
+                    local int j;
+
+                    for(j=0;j<numFaceIndex;j++)
+                    {
+                        struct{
+    
+                            ubyte skinID;// id = skinID / 3; 
+                            
+                            switch(vertAttrType)
+                            {
+                                case 2:ubyte vertexID;break;
+                                case 3:WORD vertexID;break;
+                            }
+                            if (HasNormal)
+                            {
+                                
+                                switch(normalAttrType)
+                                {
+                                    case 2:ubyte normalID;break;
+                                    case 3:WORD normalID;break;
+                                }
+
+                            }
+                            else
+                            {
+                                switch(colorAttrType)
+                                {
+                                    case 2:ubyte colorID;break;
+                                    case 3:WORD colorID;break;
+                                }
+                            }
+                            if(HasUV1)
+                            switch(uvAttrType)
+                            {
+                                case 2:ubyte uvID;break;
+                                case 3:WORD uvID;break;
+                            }
+                            if(HasUV2)
+                            switch(uvAttrType)
+                            {
+                                case 2:ubyte uv2ID;break;
+                                case 3:WORD uv2ID;break;
+                            }
+                            local string s;
+                            if (HasNormal) SPrintf (s, "skinid:%d vertID:%d normalID:%d uvID:%d",skinID, vertexID,normalID,uvID);
+                            if (!HasNormal) SPrintf (s, "skinid:%d vertID:%d colorID:%d uvID:%d",skinID, vertexID,colorID,uvID);
+                        }FaceStripIndex<read=s>;
+                        
+                    }//end for j < numFaceIndex
+                    //4 BYTES align padding
+                }face;
+            }//end if 
+            }//end for i < numSkinData
+
+        }// end if HasSkin
+            
+
+        if(!HasSkin)
+        {      
+            struct{            
+                ubyte   DrawType;//0x98 tri-strip
+                WORD    numFaceIndex;        
+                local int j;
+                for(j=0;j<numFaceIndex;j++)
+                {
+                    struct{
+                    switch(vertAttrType)
+                    {
+                        case 2:ubyte vertexID;break;
+                        case 3:WORD vertexID;break;
+                    }
+                    if (HasNormal)
+                    {
+                        ubyte normalID;
+                    }
+                    else
+                    {
+                        switch(colorAttrType)
+                        {
+                            case 2:ubyte colorID;break;
+                            case 3:WORD colorID;break;
+                        }
+                    }
+                    switch(uvAttrType)
+                    {
+                        case 2:ubyte uvID;break;
+                        case 3:WORD uvID;break;
+                    }
+                    if(HasUV2)
+                    switch(uvAttrType)
+                    {
+                        case 2:ubyte uv2ID;break;
+                        case 3:WORD uv2ID;break;
+                    }
+                    local string s;
+                    if (HasNormal) SPrintf (s, "vertID:%d normalID:%d uvID:%d", vertexID,normalID,uvID);
+                    if (!HasNormal) SPrintf (s, "vertID:%d colorID:%d uvID:%d", vertexID,colorID,uvID);
+                    }faceIndex<read=s>;
+                    
+                }
+                //4 BYTES align padding
+            }face;            
+        }
+
+
+        //byte    padding[nextOfs-FTell()]; //32 BYTES align padding
+        FSeek(nextOfs);
+    }mesh[numMesh]<optimize=false> ;
+    
+}//end gcg
+
+
+}Lod[NumberOfLOD]<optimize=false>;
+
+
+
+if ((magic=="xng") | (magic=="p3g") | (magic=="dxg"))
+{
+    if (Animates) //这里重要，只有大于1个骨骼才有Animates，如果只有1个骨骼则没有调色板数据。 如果数量大于29才有复杂调色板，否则是简单调色板
+    {
+        if (ComplexMatrixPalettes)
+        {
+            int   COMPRESSED_MATRIX_PALETTES;//0x80000000
+            local short  numberOfMatrixPalettes = COMPRESSED_MATRIX_PALETTES & 0xffff;
+            if (numberOfMatrixPalettes>0)
+            struct{
+                int     NumMatrixIds;
+                ubyte   MatrixId[NumMatrixIds];
+            }MatrixPalettes[numberOfMatrixPalettes]<optimize=false>;
+            
+            if ((numSurface>1) && (numberOfMatrixPalettes>0)) ubyte   SurfaceToMatrixPaletteIndex[numSurface];//这里是总结表，包括以上所有LOD的网格骨骼调色板信息
+        }
+        //else is simple matrix palette
+        else
+        {
+            int   SIMPLE_MATRIX_PALETTE;//0x40000000
+            local short   numberOfMatrixPalettes = SIMPLE_MATRIX_PALETTE & 0xffff;
+            int     NumMatrixIds;
+            ubyte   MatrixId[NumMatrixIds];
+            
+        }
+    }
+}
+
+
+
+
