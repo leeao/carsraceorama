@@ -13,11 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="头文件\shared">
-      <UniqueIdentifier>{52482d16-d30a-405d-a796-b0e69d01f44a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="源文件\shared">
       <UniqueIdentifier>{ca635b1c-231f-497d-a2c8-77b9984809cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\shared">
+      <UniqueIdentifier>{02b7d2ea-242b-4095-bea1-0324b3ae94a8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -27,28 +27,22 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\pluginclasses.h">
-      <Filter>头文件\shared</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\pluginshare.h">
-      <Filter>头文件\shared</Filter>
-    </ClInclude>
     <ClInclude Include="textStreamRead.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CarsTypes.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="noesis\pluginclasses.h">
+      <Filter>头文件\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="noesis\pluginshare.h">
+      <Filter>头文件\shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\noesisplugin.cpp">
-      <Filter>源文件\shared</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\pluginsupport.cpp">
-      <Filter>源文件\shared</Filter>
     </ClCompile>
     <ClCompile Include="carsraceorama.cpp">
       <Filter>源文件</Filter>
@@ -67,6 +61,12 @@
     </ClCompile>
     <ClCompile Include="XNGImport.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="noesis\noesisplugin.cpp">
+      <Filter>源文件\shared</Filter>
+    </ClCompile>
+    <ClCompile Include="noesis\pluginsupport.cpp">
+      <Filter>源文件\shared</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

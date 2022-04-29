@@ -6,4 +6,4 @@
 #include <windows.h>
 #pragma warning(disable : 4996)
 
-#include "../../pluginshare.h"
+#include "noesis/pluginshare.h"
