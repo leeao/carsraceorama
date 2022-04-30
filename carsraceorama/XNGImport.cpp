@@ -252,6 +252,7 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 				}
 			}
 
+
 			if (!memcmp(hdr->id, "xng", 4) || !memcmp(hdr->id, "p3g", 4))
 			{
 				if ((numFaceIndex % 2) == 1) bs.SetOffset(bs.GetOffset() + 2); // skip unused flag
@@ -295,9 +296,19 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 			{
 				for (int j = 0; j < numVerts; j++)
 				{
-					BYTE bone0 = boneIDs[bs.ReadFloat()];
-					sbid.WriteByte(bone0);
-					swgt.WriteFloat(1.0f);
+					if (Animates)
+					{
+						BYTE bone0 = boneIDs[bs.ReadFloat()];
+						sbid.WriteByte(bone0);
+						swgt.WriteFloat(1.0f);
+					}
+
+					else {
+						//NO Animates NO Skin - Have parent none static mesh
+						BYTE bone0 = BYTE(bs.ReadFloat());
+						sbid.WriteByte(bone0);
+						swgt.WriteFloat(1.0f);
+					}
 				}
 				rapi->rpgBindBoneIndexBufferSafe(sbid.GetBuffer(), RPGEODATA_UBYTE, 1, 1, numVerts);
 				rapi->rpgBindBoneWeightBufferSafe(swgt.GetBuffer(), RPGEODATA_FLOAT, 4, 1, numVerts * 4);
