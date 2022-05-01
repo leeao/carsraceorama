@@ -1,5 +1,9 @@
 #pragma once
 
+//SWAP Big endian / Little endian
+#define SWAP16(w)((((uint16_t)w & 0xff00) >> 8)|(((uint16_t)w & 0x00ff) << 8))
+#define SWAP32(dw)((((uint32_t)dw & 0xFF000000) >> 24)|(((uint32_t)dw & 0x00ff0000) >> 8)|(((uint32_t)dw & 0x0000ff00)<< 8)|(((uint32_t)dw & 0x000000ff) << 24))
+
 #define COMPRESSED_MATRIX_PALETTES  0x80000000
 #define SIMPLE_MATRIX_PALETTE       0x40000000
 #define MAX_BONES                   29
@@ -36,10 +40,40 @@
 #define HAS_UV3            0x4000
 #define HAS_UV4            0x8000
 
-#define SWAP16(w)((((uint16_t)w & 0xff00) >> 8)|(((uint16_t)w & 0x00ff) << 8))
-#define SWAP32(dw)((((uint32_t)dw & 0xFF000000) >> 24)|(((uint32_t)dw & 0x00ff0000) >> 8)|(((uint32_t)dw & 0x0000ff00)<< 8)|(((uint32_t)dw & 0x000000ff) << 24))
+//DXG XBOX
+// bit declarations for _Type fields
+#define D3DVSDT_FLOAT1      0x12    // 1D float expanded to (value, 0., 0., 1.)
+#define D3DVSDT_FLOAT2      0x22    // 2D float expanded to (value, value, 0., 1.)
+#define D3DVSDT_FLOAT3      0x32    // 3D float expanded to (value, value, value, 1.)
+#define D3DVSDT_FLOAT4      0x42    // 4D float
+#define D3DVSDT_D3DCOLOR    0x40    // 4D packed unsigned bytes mapped to 0. to 1. range
+                                    // Input is in D3DCOLOR format (ARGB) expanded to (R, G, B, A)
+#define D3DVSDT_SHORT2      0x25    // 2D signed short expanded to (value, value, 0., 1.)
+#define D3DVSDT_SHORT4      0x45    // 4D signed short
 
-//GCG WII
+// The following are Xbox extensions
+#define D3DVSDT_NORMSHORT1  0x11    // 1D signed, normalized short expanded to (value, 0, 0., 1.)
+                                    // (signed, normalized short maps from -1.0 to 1.0)
+#define D3DVSDT_NORMSHORT2  0x21    // 2D signed, normalized short expanded to (value, value, 0., 1.)
+#define D3DVSDT_NORMSHORT3  0x31    // 3D signed, normalized short expanded to (value, value, value, 1.)  
+#define D3DVSDT_NORMSHORT4  0x41    // 4D signed, normalized short expanded to (value, value, value, value)  
+#define D3DVSDT_NORMPACKED3 0x16    // 3 signed, normalized components packed in 32-bits.  (11,11,10).  
+                                    // Each component ranges from -1.0 to 1.0.  
+                                    // Expanded to (value, value, value, 1.)
+#define D3DVSDT_SHORT1      0x15    // 1D signed short expanded to (value, 0., 0., 1.)  
+                                    // Signed shorts map to the range [-32768, 32767]
+#define D3DVSDT_SHORT3      0x35    // 3D signed short expanded to (value, value, value, 1.)
+#define D3DVSDT_PBYTE1      0x14    // 1D packed byte expanded to (value, 0., 0., 1.)  
+                                    // Packed bytes map to the range [0, 1]
+#define D3DVSDT_PBYTE2      0x24    // 2D packed byte expanded to (value, value, 0., 1.)
+#define D3DVSDT_PBYTE3      0x34    // 3D packed byte expanded to (value, value, value, 1.)
+#define D3DVSDT_PBYTE4      0x44    // 4D packed byte expanded to (value, value, value, value) 
+#define D3DVSDT_FLOAT2H     0x72    // 2D homogeneous float expanded to (value, value,0., value.)
+                                    // Useful for projective texture coordinates.
+#define D3DVSDT_NONE        0x02    // No stream data
+
+
+//GCG WII GAMECUBE
 typedef enum _GXCompType
 {
     GX_U8 = 0,
@@ -88,7 +122,7 @@ typedef struct xngMeshName_s {
 	char    meshName[64];//matreial name
 }xngMeshName_t;
 
-//GCG WII
+//GCG WII 
 typedef struct skinWeights_s {
 	short		boneID;
 	float		weight;

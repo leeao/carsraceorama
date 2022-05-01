@@ -185,27 +185,31 @@ noesisModel_t* Model_GCG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 			float* normalBuffer = NULL;
 			if (HasNormal && HasSkin)
 			{
-
+				float normalScale = 1.0f;
 				if (normalDataType == 1)
 				{
-					normalBuffer = new float[numNormal * 3];
-					for (int i = 0; i < numNormal; i++)
-					{
-						float x = getData(bs, normalDataType, 64.0);
-						float y = getData(bs, normalDataType, 64.0);
-						float z = getData(bs, normalDataType, 64.0);
-
-						normalBuffer[i * 3 + 0] = x;
-						normalBuffer[i * 3 + 1] = y;
-						normalBuffer[i * 3 + 2] = z;
-					}
+					normalScale = 64.0f;
+				}
+				else if (normalDataType == 4)
+				{
+					normalScale = 1.0f;
 				}
 				else
 				{
 					bs.SetOffset(bs.GetOffset() + numNormal * normalStride);
 					rapi->LogOutput("Unsupport normals data type: %d.\n", normalDataType);
 				}
-				
+				normalBuffer = new float[numNormal * 3];
+				for (int i = 0; i < numNormal; i++)
+				{
+					float x = getData(bs, normalDataType, normalScale);
+					float y = getData(bs, normalDataType, normalScale);
+					float z = getData(bs, normalDataType, normalScale);
+
+					normalBuffer[i * 3 + 0] = x;
+					normalBuffer[i * 3 + 1] = y;
+					normalBuffer[i * 3 + 2] = z;
+				}
 			}
 			BYTE* colorBuffer = NULL;
 			if (HasColor)
@@ -215,9 +219,9 @@ noesisModel_t* Model_GCG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 					colorBuffer = new BYTE[4 * numVColor];
 					for (int j = 0; j < numVColor; j++)
 					{
-						colorBuffer[j * 4 + 2] = bs.ReadByte();	//B
-						colorBuffer[j * 4 + 1] = bs.ReadByte();	//G
 						colorBuffer[j * 4 + 0] = bs.ReadByte();	//R
+						colorBuffer[j * 4 + 1] = bs.ReadByte();	//G
+						colorBuffer[j * 4 + 2] = bs.ReadByte();	//B
 						colorBuffer[j * 4 + 3] = bs.ReadByte();	//A					
 					}
 				}
@@ -293,7 +297,7 @@ noesisModel_t* Model_GCG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							bs.SetOffset(offsetList[j]);
 						}
 						BYTE check = bs.ReadByte();
-						if (check != 0x9F)
+						if ((check & 0x98) != 0x98)
 						{
 							bs.SetOffset(bs.GetOffset() + 43);
 						}
