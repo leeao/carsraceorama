@@ -155,15 +155,17 @@ bool Model_SLT_Write(noesisModel_t* mdl, RichBitStream* outStream, noeRAPI_t* ra
 	
 	int rootBoneIndex = getRootBoneIndex(bones, numBones);
 	int* boneMap = new int[numBones];
+	memset(boneMap, 0, sizeof(int) * numBones);//if not have weight just fill root index
 	vector<string> boneMapStr;
 	sortBone(bones, numBones, rootBoneIndex, boneMapStr);
-
-	for (int i = 0; i < numBones; i++)
+	vector<int> boneMapCheck;
+	for (int i = 0; i < boneMapStr.size(); i++)
 	{
 		vector<string> splitStr;
 		Split(boneMapStr[i], ',', splitStr);
 		int boneIndex = stoi(splitStr[1]);
 		boneMap[boneIndex] = i;
+		boneMapCheck.push_back(boneIndex);
 		modelBone_t* bone = bones + boneIndex;
 		RichMat43 mat(bone->mat);
 		char* parentName = bone->parentName;
@@ -284,7 +286,21 @@ bool Model_SLT_Write(noesisModel_t* mdl, RichBitStream* outStream, noeRAPI_t* ra
 					{
 						boneIndex[w] = *(int*)(mesh->flatBoneIdx + i * mesh->numWeightsPerVert + w);
 						boneWeight[w] = *(float*)(mesh->flatBoneWgt + i * mesh->numWeightsPerVert + w);
+						if (boneMapStr.size() < numBones)
+						{
+							vector<int>::iterator foundBone;
+							foundBone = find(boneMapCheck.begin(), boneMapCheck.end(), boneIndex[w]);
+							if (foundBone == boneMapCheck.end())
+							{
+								rapi->LogOutput("Warning: Mesh: %s Vertex ID: %d is missing weights, auto mapped to root bone.\n",
+									mesh->name, i);
+							}
+
+						}
 						boneIndex[w] = boneMap[boneIndex[w]];//remap bone index
+
+
+						
 					}
 
 					sprintf_s(tempStr, "%i,%i,%i,%i,%f,%f,%f,%f\r\n",

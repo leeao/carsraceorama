@@ -2,13 +2,15 @@ This is a Noesis C++ native plugin project.
 
 The importer supports the following Cars model formats:
 
-  XBOX360 XNG format
+  XNG XBOX360 / PC  
 
-  PS3 P3G format
+  P3G (Same as XNG) PS3 
 
-  WII GCG format
+  GCG WII / GameCube 
 
-  PC DXG format
+  DXG PC / XBOX  
+
+  PSG PS2 
 
   SLT text format
 

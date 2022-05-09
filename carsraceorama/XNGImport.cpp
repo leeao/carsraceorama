@@ -216,24 +216,24 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 		}
 	}
 	
-	vector<vector<BYTE>> skinBonesList;
-	vector<BYTE> usedSkinListIDArray;
+	vector<vector<BYTE>> boneMaps;
+	vector<BYTE> boneMapIndices;
 	if (Animates)
 	{
 		int info = bs.ReadInt();
-		short numUsedSkinBonesList = (short)(info & 0xffff);
-		if (numUsedSkinBonesList > 0)
+		short numBoneMaps = (short)(info & 0xffff);
+		if (numBoneMaps > 0)
 		{
-			for (int id = 0; id < numUsedSkinBonesList; id++)
+			for (int id = 0; id < numBoneMaps; id++)
 			{
-				vector<BYTE> skinBoneIDs;
+				vector<BYTE> boneMap;
 				int numBoneIDs = bs.ReadInt();
 				for (int j = 0; j < numBoneIDs; j++)
 				{
 					BYTE boneID = bs.ReadByte();
-					skinBoneIDs.push_back(boneID);
+					boneMap.push_back(boneID);
 				}
-				skinBonesList.push_back(skinBoneIDs);
+				boneMaps.push_back(boneMap);
 			}
 
 
@@ -241,12 +241,12 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 			{
 				for (int id = 0; id < numSurface; id++)
 				{
-					usedSkinListIDArray.push_back(bs.ReadByte());
+					boneMapIndices.push_back(bs.ReadByte());
 				}
 			}
 			else//Simple palettes
 			{
-				usedSkinListIDArray.push_back(0);
+				boneMapIndices.push_back(0);
 			}
 		}
 	}
@@ -312,7 +312,7 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 			int FixedInWorldSpace = 0;
 			if (hasComp)
 			{
-				vertexDecompScale = bs.ReadFloat();
+				vertexDecompScale = bs.ReadFloat();// factor = 1.0f / this
 				normalDecompScale = bs.ReadFloat();
 				uvDecompScale = bs.ReadFloat();
 				uvDecompScale2 = bs.ReadFloat();
@@ -352,7 +352,7 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 			bs.SetOffset(bs.GetOffset() + numFaceIndex * 2);
 			//unsigned short* faceBuffer = new unsigned short[numFaceIndex];
 
-			vector<BYTE> boneIDs;
+			vector<BYTE> boneMap;
 			if (Animates)
 			{
 				int index = meshID;
@@ -360,9 +360,9 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 				{
 					index = 0;
 				}
-				for (int j = 0; j < skinBonesList[usedSkinListIDArray[index]].size(); j++)
+				for (int j = 0; j < boneMaps[boneMapIndices[index]].size(); j++)
 				{
-					boneIDs.push_back(skinBonesList[usedSkinListIDArray[index]][j]);
+					boneMap.push_back(boneMaps[boneMapIndices[index]][j]);
 				}
 			}
 
@@ -412,9 +412,9 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							}
 							bs.SetOffset(bs.GetOffset() + 6);
 
-							vertBuffer[i * 3 + 0] = (float)compX / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
-							vertBuffer[i * 3 + 1] = (float)compY / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
-							vertBuffer[i * 3 + 2] = (float)compZ / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
+							vertBuffer[i * 3 + 0] = (float)compX * vertexDecompScale + BoundingCubeCenterX;
+							vertBuffer[i * 3 + 1] = (float)compY * vertexDecompScale + BoundingCubeCenterY;
+							vertBuffer[i * 3 + 2] = (float)compZ * vertexDecompScale + BoundingCubeCenterZ;
 						}
 
 						break;
@@ -425,9 +425,9 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							char compY = bs.ReadByte();
 							char compZ = bs.ReadByte();
 
-							vertBuffer[i * 3 + 0] = (float)compX / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
-							vertBuffer[i * 3 + 1] = (float)compY / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
-							vertBuffer[i * 3 + 2] = (float)compZ / (1.0f / vertexDecompScale) + BoundingCubeCenterX;
+							vertBuffer[i * 3 + 0] = (float)compX * vertexDecompScale + BoundingCubeCenterX;
+							vertBuffer[i * 3 + 1] = (float)compY * vertexDecompScale + BoundingCubeCenterY;
+							vertBuffer[i * 3 + 2] = (float)compZ * vertexDecompScale + BoundingCubeCenterZ;
 						}
 						break;
 					}
@@ -454,9 +454,9 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							}
 							bs.SetOffset(bs.GetOffset() + 6);
 
-							normalBuffer[i * 3 + 0] = (float)compX / (1.0f / normalDecompScale);
-							normalBuffer[i * 3 + 1] = (float)compY / (1.0f / normalDecompScale);
-							normalBuffer[i * 3 + 2] = (float)compZ / (1.0f / normalDecompScale);
+							normalBuffer[i * 3 + 0] = (float)compX * normalDecompScale;
+							normalBuffer[i * 3 + 1] = (float)compY * normalDecompScale;
+							normalBuffer[i * 3 + 2] = (float)compZ * normalDecompScale;
 						}
 
 						break;
@@ -467,9 +467,9 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							char compY = bs.ReadByte();
 							char compZ = bs.ReadByte();
 
-							normalBuffer[i * 3 + 0] = (float)compX / (1.0f / normalDecompScale);
-							normalBuffer[i * 3 + 1] = (float)compY / (1.0f / normalDecompScale);
-							normalBuffer[i * 3 + 2] = (float)compZ / (1.0f / normalDecompScale);
+							normalBuffer[i * 3 + 0] = (float)compX * normalDecompScale;
+							normalBuffer[i * 3 + 1] = (float)compY * normalDecompScale;
+							normalBuffer[i * 3 + 2] = (float)compZ * normalDecompScale;
 						}
 						break;
 					}
@@ -537,8 +537,8 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 							}
 							bs.SetOffset(bs.GetOffset() + 4);
 
-							uvBuffer[i * 2 + 0] = (float)compX / (1.0f / uvDecompScale);
-							uvBuffer[i * 2 + 1] = (float)compY / (1.0f / uvDecompScale);
+							uvBuffer[i * 2 + 0] = (float)compX * uvDecompScale;
+							uvBuffer[i * 2 + 1] = (float)compY * uvDecompScale;
 						}
 						break;
 					case D3DVSDT_PBYTE2:
@@ -546,8 +546,8 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 						{
 							char compX = bs.ReadByte();
 							char compY = bs.ReadByte();
-							uvBuffer[i * 2 + 0] = (float)compX / (1.0f / uvDecompScale);
-							uvBuffer[i * 2 + 1] = (float)compY / (1.0f / uvDecompScale);
+							uvBuffer[i * 2 + 0] = (float)compX * uvDecompScale;
+							uvBuffer[i * 2 + 1] = (float)compY * uvDecompScale;
 						}
 						break;
 					}
@@ -575,7 +575,7 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 				{
 					if (Animates)
 					{
-						BYTE bone0 = boneIDs[bs.ReadFloat()];
+						BYTE bone0 = boneMap[bs.ReadFloat()];
 						sbid.WriteByte(bone0);
 						swgt.WriteFloat(1.0f);
 					}
@@ -595,17 +595,16 @@ noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 				if (hasSingleBone) bs.SetOffset(bs.GetOffset() + numVerts * 4);//if same time have 4 bones/weights and singel bone just skip single bone data
 			}
 
-			//Skin BoneIDs
-			float* bidxAr = (hasSkin) ? (float*)(fileBuffer + bs.GetOffset()) : NULL;
+			//Skin BoneIDs			
 			RichBitStream bid;
 			if (hasSkin)
 			{
 				for (int j = 0; j < numVerts; j++)
 				{
-					BYTE bone0 = boneIDs[bs.ReadFloat()];
-					BYTE bone1 = boneIDs[bs.ReadFloat()];
-					BYTE bone2 = boneIDs[bs.ReadFloat()];
-					BYTE bone3 = boneIDs[bs.ReadFloat()];
+					BYTE bone0 = boneMap[bs.ReadFloat()];
+					BYTE bone1 = boneMap[bs.ReadFloat()];
+					BYTE bone2 = boneMap[bs.ReadFloat()];
+					BYTE bone3 = boneMap[bs.ReadFloat()];
 					bid.WriteByte(bone0); bid.WriteByte(bone1); bid.WriteByte(bone2); bid.WriteByte(bone3);
 
 				}

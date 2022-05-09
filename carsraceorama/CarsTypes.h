@@ -1,6 +1,6 @@
 #pragma once
 
-//SWAP Big endian / Little endian
+// SWAP Big endian / Little endian
 #define SWAP16(w)((((uint16_t)w & 0xff00) >> 8)|(((uint16_t)w & 0x00ff) << 8))
 #define SWAP32(dw)((((uint32_t)dw & 0xFF000000) >> 24)|(((uint32_t)dw & 0x00ff0000) >> 8)|(((uint32_t)dw & 0x0000ff00)<< 8)|(((uint32_t)dw & 0x000000ff) << 24))
 
@@ -10,7 +10,7 @@
 #define MAX_BONE_NEIGHBORS          6
 #define MAX_BONE_IDS                256
 
-//GCG WII
+// GCG WII
 #define GX_NOP                   0x00
 #define GX_DRAW_TRIANGLES        0x90
 #define GX_DRAW_TRIANGLE_STRIP   0x98
@@ -22,7 +22,7 @@
 #define GCG_HAS_UNK              0x40
 #define GCG_STREAMED             0x80
 
-//XNG P3G XBOX360 PS3
+// XNG P3G XBOX360 PS3
 #define HAS_XYZ            0x01
 #define HAS_NORMAL         0x02
 #define HAS_UV1            0x04
@@ -40,7 +40,7 @@
 #define HAS_UV3            0x4000
 #define HAS_UV4            0x8000
 
-//DXG XBOX
+// DXG XBOX
 // bit declarations for _Type fields
 #define D3DVSDT_FLOAT1      0x12    // 1D float expanded to (value, 0., 0., 1.)
 #define D3DVSDT_FLOAT2      0x22    // 2D float expanded to (value, value, 0., 1.)
@@ -72,8 +72,48 @@
                                     // Useful for projective texture coordinates.
 #define D3DVSDT_NONE        0x02    // No stream data
 
+// PSG PS2
+// VIF expansion/compression formats
+#define VIF_FORMAT_V2_8             0x6
+#define VIF_FORMAT_V3_8             0xa
+#define VIF_FORMAT_V4_8             0xe
+#define VIF_FORMAT_V2_16            0x5
+#define VIF_FORMAT_V3_16            0x9
+#define VIF_FORMAT_V4_16            0xd
+#define VIF_FORMAT_V2_32            0x4
+#define VIF_FORMAT_V3_32            0x8
+#define VIF_FORMAT_V4_32            0xc
 
-//GCG WII GAMECUBE
+#define VIF_UNPACK_FLAG             0x60
+
+// PSG PS2
+typedef struct {
+    short           IMMEDIATE;
+    unsigned char   NUM;
+    unsigned char   CMD : 7;
+    unsigned char   stl : 1;// interrupt flag
+}VIFcode;
+
+typedef struct {
+    unsigned short   ADDR : 10;// VU Mem address in transfer destination (address divided by 16.)
+    unsigned short   pad : 4;
+    unsigned short   USN : 1;//0=signed data; 1=unsigned data;(0x80=s,0x40,0xC0=un)
+    unsigned short   FLG : 1;//Address mode (VIF1 only) 1 Adds VIF1_TOPS register to ADDR. 0 Does not use VIF1_TOPS register.
+    unsigned char    NUM;
+
+    unsigned char    vl : 2;
+    unsigned char    vn : 2;
+    unsigned char    m : 1;
+    unsigned char    CMD : 2;//The m bit shows the presence of the supplementation and mask processing.
+    unsigned char    stl : 1;// interrupt flag. The i bit shows the presence of the interrupt after processing is performed.
+    
+    //int command = (vn << 2) | vl;
+
+}VIF_UNPACK;
+
+
+
+// GCG WII GAMECUBE
 typedef enum _GXCompType
 {
     GX_U8 = 0,
@@ -101,7 +141,7 @@ typedef enum _GXAttrType
 GXAttrType;
 
 
-//Common
+// Common
 typedef struct xngHdr_s
 {
 	char    id[4];//xng or p3g or gcg
@@ -122,7 +162,7 @@ typedef struct xngMeshName_s {
 	char    meshName[64];//matreial name
 }xngMeshName_t;
 
-//GCG WII 
+// GCG WII 
 typedef struct skinWeights_s {
 	short		boneID;
 	float		weight;
@@ -159,16 +199,3 @@ typedef struct RotationMatrix3x3_s {
     float   row2[3];
     float   row3[3];
 }RotationMatrix3x3_t;
-
-//not use
-typedef struct SLTBone_s
-{
-    char        name[128];
-    char        parentName[128];
-    RichMat43   mat;
-    RichMat43   localMatrix;
-    int	        index;
-    SLTBone_s   *parent;
-    SLTBone_s   *sub;
-    SLTBone_s   *sibling;
-}SLTBone_t;

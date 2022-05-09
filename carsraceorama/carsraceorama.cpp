@@ -14,7 +14,7 @@ extern noesisModel_t* Model_XNG_Load(BYTE* fileBuffer, int bufferLen, int& numMd
 extern noesisModel_t* Model_GCG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeRAPI_t* rapi);
 extern noesisModel_t* Model_SLT_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeRAPI_t* rapi);
 extern bool Model_SLT_Write(noesisModel_t* mdl, RichBitStream* outStream, noeRAPI_t* rapi);
-
+extern noesisModel_t* Model_PSG_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeRAPI_t* rapi);
 
 //see if something is valid xng p3g data
 bool Model_XNG_Check(BYTE* fileBuffer, int bufferLen, noeRAPI_t* rapi)
@@ -45,7 +45,7 @@ bool Model_GCG_Check(BYTE* fileBuffer, int bufferLen, noeRAPI_t* rapi)
 {
 	xngHdr_t* hdr = (xngHdr_t*)fileBuffer;
 
-	if (memcmp(hdr->id, "gcg\0", 4))
+	if (memcmp(hdr->id, "gcg", 4))
 	{
 		return false;
 	}
@@ -58,6 +58,23 @@ bool Model_GCG_Check(BYTE* fileBuffer, int bufferLen, noeRAPI_t* rapi)
 	return true;
 }
 
+//see if something is valid psg data
+bool Model_PSG_Check(BYTE* fileBuffer, int bufferLen, noeRAPI_t* rapi)
+{
+	xngHdr_t* hdr = (xngHdr_t*)fileBuffer;
+
+	if (memcmp(hdr->id, "psg", 4))
+	{
+		return false;
+	}
+
+	if (hdr->version != 0x5)	//big endian ; little endian = 0x5
+	{
+		return false;
+	}
+
+	return true;
+}
 
 
 //called by Noesis to init the plugin
@@ -66,7 +83,8 @@ bool NPAPI_InitLocal(void)
 	g_fmtHandle = g_nfn->NPAPI_Register((char *)"Cars Race-O-Rama XBOX360 PS3 PC", (char*)".xng;.p3g;.dxg");
 	int fmtSLT = g_nfn->NPAPI_Register((char*)"Cars SLT Model Format", (char*)".slt");
 	int fmtGCG = g_nfn->NPAPI_Register((char*)"Cars Race-O-Rama WII", (char*)".gcg");
-	if (g_fmtHandle < 0 || fmtSLT < 0 || fmtGCG < 0)
+	int fmgPSG = g_nfn->NPAPI_Register((char*)"Cars Race-O-Rama PS2", (char*)".psg");
+	if (g_fmtHandle < 0 || fmtSLT < 0 || fmtGCG < 0 || fmgPSG < 0)
 	{
 		return false;
 	}
@@ -83,6 +101,8 @@ bool NPAPI_InitLocal(void)
 	g_nfn->NPAPI_SetTypeHandler_TypeCheck(fmtGCG, Model_GCG_Check);
 	g_nfn->NPAPI_SetTypeHandler_LoadModel(fmtGCG, Model_GCG_Load);
 
+	g_nfn->NPAPI_SetTypeHandler_TypeCheck(fmgPSG, Model_PSG_Check);
+	g_nfn->NPAPI_SetTypeHandler_LoadModel(fmgPSG, Model_PSG_Load);
 	return true;
 }
 //called by Noesis before the plugin is freed

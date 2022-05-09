@@ -1,7 +1,7 @@
 //------------------------------------------------
 //--- 010 Editor v10.0.2 Binary Template
 //
-//      File: Cars Race-O-Rama PS3 P3G, XBOX360 XNG, WII GCG, PC DXG
+//      File: Cars Race-O-Rama PS3 P3G, XBOX360 XNG, WII / GameCube GCG, PC / XBOX DXG, PS2 PSG
 //   Authors: Allen
 //   Version: 
 //   Purpose: 
@@ -14,6 +14,7 @@
 
 #define MAX_BONES 29 
 
+// GCG GameCube / WII
 #define GX_NOP                   0x00
 #define GX_DRAW_TRIANGLE_STRIP   0x98
 
@@ -24,6 +25,7 @@
 #define GCG_HAS_UNK              0x40
 #define GCG_STREAMED             0x80
 
+// XNG XBOX360, P3G PS3, DXG XBOX / PC, PSG PS2
 #define HAS_XYZ            0x01
 #define HAS_NORMAL         0x02
 #define HAS_UV1            0x04
@@ -41,6 +43,7 @@
 #define HAS_UV3            0x4000
 #define HAS_UV4            0x8000
 
+// DXG XBOX PC 
 // bit declarations for _Type fields
 #define D3DVSDT_FLOAT1      0x12    // 1D float expanded to (value, 0., 0., 1.)
 #define D3DVSDT_FLOAT2      0x22    // 2D float expanded to (value, value, 0., 1.)
@@ -72,6 +75,7 @@
                                     // Useful for projective texture coordinates.
 #define D3DVSDT_NONE        0x02    // No stream data
 
+// GCG GameCube / WII
 typedef enum _GXCompType
 {
     GX_U8      = 0,
@@ -98,12 +102,13 @@ typedef enum _GXAttrType
 }
 GXAttrType;
 
+// GCG GameCube / WII
 typedef struct{
     short   id1;
     short   id2;
     short   id3;
     ubyte   matrixType;//4 = Matrix3x3 0 =Matrix3x4
-    ubyte   matrixDataIDOffset;//9 floats = Matrix3x3 9*float(4bytes) = 36 bytes per data .,12 floats =Matrix3x4 12*float(4bytes) = 48 bytes per data .
+    ubyte   matrixDataIDOffset;//9 floats = Matrix3x3 9*float(4bytes) = 36 bytes per data . 12 floats =Matrix3x4 12*float(4bytes) = 48 bytes per data .
     if (matrixType == 4)
     {
         struct{
@@ -121,6 +126,130 @@ typedef struct{
     }
     local int endOfs = FTell();
 }GcgSkinBoneInfo;
+
+// PSG PS2
+// VIF expansion/compression formats
+#define VIF_FORMAT_V2_8             0x6
+#define VIF_FORMAT_V3_8             0xa
+#define VIF_FORMAT_V4_8             0xe
+#define VIF_FORMAT_V2_16            0x5
+#define VIF_FORMAT_V3_16            0x9
+#define VIF_FORMAT_V4_16            0xd
+#define VIF_FORMAT_V2_32            0x4
+#define VIF_FORMAT_V3_32            0x8
+#define VIF_FORMAT_V4_32            0xc
+
+#define VIF_UNPACK_FLAG             0x60
+
+typedef struct{
+    short   IMMEDIATE;
+    ubyte   NUM;
+    ubyte   CMD:7;
+    ubyte   stl:1;// interrupt flag
+}VIFcode<read=ReadVIF(CMD)>;
+
+string ReadVIF(int cmd)
+{
+    
+    local string str = "";
+    SPrintf(str,"0x%x",cmd);
+    switch( cmd ) 
+    {
+        case 0  : str += " NOP";        break;
+        case 1  : str += " STCYCL";     break;
+        case 2  : break;
+        case 3  : break;
+        case 4  : break;
+        case 5  : str += " STMOD";     break;
+        case 6  : break;
+        case 7  : break;
+        case 0x10 : break;
+        case 0x11 : break;
+        case 0x13 : break;
+        case 0x17 : str +=" MSCNT" ;  break;
+        case 0x15 : break;
+        case 0x14 : break;
+        case 0x20 : str +=" STMASK";  break;
+        case 0x30 : str +=" STROW";   break;
+        case 0x31 : str +=" STCOL";   break;
+
+        default :
+            if ((cmd & 0x60) == 0x60){
+                SPrintf(str,"0x%X UNPACK",cmd);    
+            }
+    }
+    return str;
+}
+
+void skipVifPadding (int dataSize){
+    if ((dataSize % 4) > 0)
+    {
+        FSeek(FTell() +( 4-(dataSize % 4)));
+    }
+};
+
+typedef struct{
+    ushort   ADDR:10;// VU Mem address in transfer destination (address divided by 16.)
+    ushort   pad:4;
+    ushort   USN:1;//0=signed data; 1=unsigned data;(0x80=s,0x40,0xC0=un)
+    ushort   FLG:1;//Address mode (VIF1 only) 1 Adds VIF1_TOPS register to ADDR. 0 Does not use VIF1_TOPS register.
+    ubyte    NUM;
+    
+    ubyte    vl:2;
+    ubyte    vn:2;
+    ubyte    m:1;
+    ubyte    CMD:2;//The m bit shows the presence of the supplementation and mask processing.
+    ubyte    stl:1;// interrupt flag. The i bit shows the presence of the interrupt after processing is performed.
+    
+
+    local int format<format=hex> = (vn << 2 ) | vl;
+    local int command<format=hex> = (CMD<<5) | (vn<<2)| vl;
+    local int dataSize = vn + 1;
+    local int numElement = vn + 1;
+
+    local int bits;
+
+    switch( vl ) 
+    {
+        case 0  : dataSize *= 4;bits = 32; break;
+        case 1  : dataSize *= 2; bits = 16; break;
+        case 2  : dataSize *= 1; bits = 8; break;
+        case 3 : dataSize *= 3; bits = 16; break;
+        default : ;
+    } 
+   
+
+    dataSize *= NUM;
+
+}UNPACK<read=ReadVIF(command)>;
+
+/* Utility for making giftag */
+typedef struct {
+	unsigned long NLOOP:15;
+	unsigned long EOP:1;
+	unsigned long pad16:16;
+	unsigned long id:14;
+	unsigned long PRE:1;
+	unsigned long PRIM:11;
+	unsigned long FLG:2;
+	unsigned long NREG:4;
+	unsigned long REGS0:4;
+	unsigned long REGS1:4;
+	unsigned long REGS2:4;
+	unsigned long REGS3:4;
+	unsigned long REGS4:4;
+	unsigned long REGS5:4;
+	unsigned long REGS6:4;
+	unsigned long REGS7:4;
+	unsigned long REGS8:4;
+	unsigned long REGS9:4;
+	unsigned long REGS10:4;
+	unsigned long REGS11:4;
+	unsigned long REGS12:4;
+	unsigned long REGS13:4;
+	unsigned long REGS14:4;
+	unsigned long REGS15:4;
+} sceGifTag;
 
 
 local int Animates = FALSE;
@@ -154,6 +283,17 @@ int     numNames;
 struct{
     char    materialName[64];
 }materialNames[numNames];
+
+if (magic=="psg")
+{
+    float   xyzDecompressionScale;      //reciprocal, factor = 1 / scale.
+    float   normalDecompressionScale;
+    float   textureDecompressionScale;
+    float   textureDecompressionScale2;
+    float   BoundingCubeCenter[3];
+    uint    FixedInWorldSpace;
+}
+
 
 BYTE    NumberOfLOD;
 BYTE    skinedModelFlag;//0,1,3
@@ -208,10 +348,10 @@ if ((magic=="xng") | (magic=="p3g") | (magic=="dxg"))
         local int numWeights = 4;
         if (hasComp)
         {
-            float   xyzDecompressionScale;
+            float   xyzDecompressionScale;      //reciprocal, factor = 1 / scale.
             float   normalDecompressionScale;
-            float   textureDecompressionScale;//U
-            float   textureDecompressionScale2;//V?
+            float   textureDecompressionScale;
+            float   textureDecompressionScale2;
             float   BoundingCubeCenter[3];
             uint    FixedInWorldSpace;
         }
@@ -563,19 +703,190 @@ if (magic=="gcg")
     }mesh[numMesh]<optimize=false> ;
     
 }//end gcg
+if (magic=="psg")
+{
+    float   AutoLODValue;
+    int     numMeshes;
+    numSurface += numMeshes;
 
+    struct{
+        int     surfaceID;
+        uint    vertFormat;
+        local int hasPos = (vertFormat & 1) == 1;
+        local int hasNormal = (vertFormat & 2) == 2;
+        local int hasUV1 = (vertFormat & 4) == 4;//hasUV1
+        local int hasColor = (vertFormat & 8) == 8;//HAS_RGBA
+        local int hasUV2 = (vertFormat & 0x10) == 0x10; //HAS_UV2 
+        local int hasSkin = (vertFormat & 0x1000) == 0x1000;//HAS_WEIGHTS   
+        local int hasTangent = (vertFormat & 0x20) == 0x20; 
+        local int hasDeltaShader = (vertFormat & HAS_DELTA_SHADER) == HAS_DELTA_SHADER;
+        
+        ubyte   numTextureCoordinateSets;        
+        ubyte   streaming;
+        byte    unused[3];
+        float   currentUVSize[numTextureCoordinateSets];    
+
+        WORD    numVerts;
+        WORD    numStrips;
+        DWORD   chunkSize;
+        local DWORD nextOfs = FTell()+chunkSize;
+        local int i;
+        do{
+            VIFcode vifcode;
+
+            if (vifcode.CMD & VIF_UNPACK_FLAG)
+            {
+                sceGifTag giftag;
+                
+                if (hasPos)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V4_8:   byte    vertexXYZ_Bone0[4];break;// bone0id = bone0 / 16 - 1;
+                                case VIF_FORMAT_V4_16:  short   vertexXYZ_Bone0[4];break;// vertex xyz = xyz * xyzDecompressionScale + BoundingCubeCenter
+                                case VIF_FORMAT_V4_32:  int     vertexXYZ_Bone0[4];break;
+                            }
+                        }vertex;
+                    }Vertices<read="Vertices">;
+                    skipVifPadding(unpack.dataSize);
+                } 
+                if (hasNormal)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V3_8:   byte    normalXYZ[3];break;// normal xyz *= normalDecompressionScale
+                                case VIF_FORMAT_V3_16:  short   normalXYZ[3];break;
+                                case VIF_FORMAT_V3_32:  float   normalXYZ[3];break;
+                            }
+                        }normal;
+                    }Normals<read="Normals">;
+                    skipVifPadding(unpack.dataSize);
+                } 
+                if (hasUV1)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V2_8:   byte    uv[2];break;
+                                case VIF_FORMAT_V2_16:  short   uv[2];break;// UV *= textureDecompressionScale
+                                case VIF_FORMAT_V2_32:  int     uv[2];break;
+                            }
+                        }uv1;
+                    }UV1s<read="UV1Array">;
+                    skipVifPadding(unpack.dataSize);
+                } 
+                if (hasSkin)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V4_16:   
+                                    short    bone1;// bone1id = bone1 / 16 - 1;
+                                    short    bone2;
+                                    short    bone3;
+                                    short    bone_pad;// not use
+                                    break;
+                            }
+                        }boneID;
+                    }BoneIDs<read="BoneIDs">;
+                    skipVifPadding(unpack.dataSize);
+                } 
+                if (hasColor && !hasSkin)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V4_8:   ubyte BGRA[4]; break;
+                            }
+                        }color;
+                    }Colors<read="Colors">;
+                    skipVifPadding(unpack.dataSize);
+                }  
+                if (hasUV2)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V2_8:   byte    uv[2];break;
+                                case VIF_FORMAT_V2_16:  short   uv[2];break;// UV2 *= textureDecompressionScale
+                                case VIF_FORMAT_V2_32:  float   uv[2];break;// no scale
+                            }
+                        }uv2;
+                    }UV2s<read="UV2Array">;
+                    skipVifPadding(unpack.dataSize);
+                }  
+                if (hasTangent)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V3_8:   byte    tangentXYZ[3];break;// tangent xyz *= normalDecompressionScale
+                                case VIF_FORMAT_V3_16:  short   tangentXYZ[3];break;// tangent xyz *= normalDecompressionScale
+                                case VIF_FORMAT_V3_32:  float   tangentXYZ[3];break;// no scale
+                            }
+                        }tangent;
+                    }Tangents<read="Tangents">;
+                    skipVifPadding(unpack.dataSize);
+                }   
+                if (hasSkin)
+                {    
+                    UNPACK unpack;
+                    struct{
+                    for (i = 0; i< unpack.NUM; i++)
+                        struct{
+                            switch(unpack.format)
+                            {
+                                case VIF_FORMAT_V4_8:   ubyte weights[4]; // float weight /= 255.0f;
+                                                        break;
+                            }
+                        }weight;
+                    }Weights<read="Weights">;
+                    skipVifPadding(unpack.dataSize);
+                }          
+                VIFcode mscnt;
+            }
+            
+        }while(FTell() < nextOfs);
+
+
+        FSeek(nextOfs);
+    }mesh[numMeshes]<optimize=false>;
+}//end psg
 
 }Lod[NumberOfLOD]<optimize=false>;
 
 
 
-if ((magic=="xng") | (magic=="p3g") | (magic=="dxg"))
+if ((magic=="xng") | (magic=="p3g") | (magic=="dxg") | (magic=="psg"))
 {
     if (Animates) //这里重要，只有大于1个骨骼才有Animates，如果只有1个骨骼则没有调色板数据。 如果数量大于29才有复杂调色板，否则是简单调色板
     {
         if (ComplexMatrixPalettes)
         {
-            int   COMPRESSED_MATRIX_PALETTES;//0x80000000
+            int   COMPRESSED_MATRIX_PALETTES<format=hex>;//0x80000000
             local short  numberOfMatrixPalettes = COMPRESSED_MATRIX_PALETTES & 0xffff;
             if (numberOfMatrixPalettes>0)
             struct{
@@ -588,7 +899,7 @@ if ((magic=="xng") | (magic=="p3g") | (magic=="dxg"))
         //else is simple matrix palette
         else
         {
-            int   SIMPLE_MATRIX_PALETTE;//0x40000000
+            int   SIMPLE_MATRIX_PALETTE<format=hex>;//0x40000000
             local short   numberOfMatrixPalettes = SIMPLE_MATRIX_PALETTE & 0xffff;
             int     NumMatrixIds;
             ubyte   MatrixId[NumMatrixIds];

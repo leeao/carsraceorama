@@ -68,10 +68,14 @@
     <ClCompile Include="noesis\pluginsupport.cpp">
       <Filter>源文件\shared</Filter>
     </ClCompile>
+    <ClCompile Include="PSGImport.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="noesisplugin.def">
       <Filter>源文件</Filter>
     </None>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>
