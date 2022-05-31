@@ -86,7 +86,7 @@ noesisModel_t* Model_SLT_Load(BYTE* fileBuffer, int bufferLen, int& numMdl, noeR
 		mat.m.o[2] = m[11];
 
 		//mat = *(RichMat43*)m;
-			
+		mat.Transpose();
 		dstBone->mat = mat.m;
 
 		reader.GetData(i, 0, dstBone->name);
