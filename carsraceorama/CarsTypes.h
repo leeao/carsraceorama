@@ -199,3 +199,11 @@ typedef struct RotationMatrix3x3_s {
     float   row2[3];
     float   row3[3];
 }RotationMatrix3x3_t;
+
+typedef struct sltOpts_s
+{
+    int     fixAlpha;
+    int     removeColor;
+} sltOpts_t;
+
+extern sltOpts_t* g_opts;

@@ -2,7 +2,11 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include "CarsTypes.h"
+
 using namespace std;
+
+
 int getRootBoneIndex(modelBone_t*& bones, int numBones);
 void sortBone(modelBone_t*& bones, int numBones, int rootBoneIndex, vector<string>& boneMapStr);
 void Split(string str, char splitChar, vector<string>& strArray);
@@ -191,6 +195,14 @@ bool Model_SLT_Write(noesisModel_t* mdl, RichBitStream* outStream, noeRAPI_t* ra
 	sprintf_s(tempStr, "NumberOfLOD=%i\r\n", numLOD);
 	allLines.push_back(string(tempStr));
 
+	if (g_opts->fixAlpha)
+	{
+		rapi->LogOutput("Disable alpha!\n");
+	}
+	if (g_opts->removeColor)
+	{
+		rapi->LogOutput("Remove vertex color!\n");
+	}
 	//LOD Block
 	for (int lodIndex = 0; lodIndex < numLOD; lodIndex++)
 	{
@@ -229,6 +241,14 @@ bool Model_SLT_Write(noesisModel_t* mdl, RichBitStream* outStream, noeRAPI_t* ra
 				modelVert_t* normal = mesh->normals + i;
 				modelTexCoord_t* uv = mesh->uvs + i;
 				modelRGBA_t* color = hasColor ? mesh->colors + i : &colorPadding;
+				if (g_opts->fixAlpha)
+				{
+					color->rgba[3] = 1.0f;
+				}
+				if (g_opts->removeColor)
+				{
+					color = &colorPadding;
+				}
 				sprintf_s(tempStr, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\r\n",
 					vert->x, vert->y, vert->z,
 					normal->x, normal->y, normal->z,
